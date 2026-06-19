@@ -166,39 +166,45 @@ main { max-width: 1350px; margin: 0 auto; padding: 0 1.5rem 4rem; }
   text-align: center;
 }
 
-/* ===== STAT CARDS ===== */
-.stats-grid {
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
-  gap: 1.2rem;
+/* ===== DAM HEADER INLINE STATS ===== */
+.dam-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 0.8rem;
+  margin-bottom: 1.2rem;
 }
-.stat-card {
-  background: var(--white);
-  border-radius: var(--radius);
-  padding: 1.2rem;
-  box-shadow: var(--shadow);
-  text-align: center;
-  transition: transform var(--transition), box-shadow var(--transition);
-  border: 1px solid var(--blue-100);
-  position: relative;
-  overflow: hidden;
+.dam-header-stats {
+  display: flex;
+  gap: 0.6rem;
+  align-items: center;
 }
-.stat-card::after {
-  content: '';
-  position: absolute;
-  bottom: 0;
-  left: 0;
-  width: 100%;
-  height: 4px;
-  background: linear-gradient(90deg, var(--blue-500), var(--blue-300));
+.dam-header-stat {
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+  background: var(--blue-50);
+  border: 1px solid var(--blue-200);
+  border-radius: 20px;
+  padding: 0.3rem 0.8rem;
+  transition: box-shadow var(--transition);
 }
-.stat-card:hover {
-  transform: translateY(-4px);
-  box-shadow: var(--shadow-lg);
+.dam-header-stat:hover {
+  box-shadow: 0 2px 8px rgba(45, 121, 205, 0.15);
 }
-.stat-icon { font-size: 1.8rem; margin-bottom: 0.2rem; }
-.stat-value { font-size: 1.8rem; font-weight: 800; color: var(--blue-800); }
-.stat-label { font-size: 0.75rem; color: var(--gray-600); margin-top: 0.2rem; text-transform: uppercase; letter-spacing: 0.8px; font-weight: 600; }
+.dam-header-stat-label {
+  font-size: 0.68rem;
+  font-weight: 700;
+  color: var(--gray-600);
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+.dam-header-stat-value {
+  font-size: 0.9rem;
+  font-weight: 800;
+  color: var(--blue-800);
+}
 
 /* ===== CARDS ===== */
 .card {

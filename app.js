@@ -165,7 +165,7 @@ function initMembershipCharts() {
         ds('VVH', xH.map(x => trapmf(x,80,100,120,120)), '#ef4444'),
       ],
     },
-    options: mfOpts('Dam Level (H)'),
+    options: mfOpts('Dam Level (H) [m]'),
   });
 
   charts.mfDH = new Chart($('chart-mf-dh'), {
@@ -180,7 +180,7 @@ function initMembershipCharts() {
         ds('PB', xdH.map(x => trapmf(x,2.5,5,10,10)), '#ef4444'),
       ],
     },
-    options: mfOpts('Rate of Change (dH)'),
+    options: mfOpts('Rate of Change (dH) [m/hr]'),
   });
 
   charts.mfD = new Chart($('chart-mf-d'), {
@@ -195,7 +195,7 @@ function initMembershipCharts() {
         ds('H (d5)', xD.map(x => trapmf(x,65,85,100,100)), '#ef4444'),
       ],
     },
-    options: mfOpts('Gate Openness (d %)'),
+    options: mfOpts('Gate Openness (d) [%]'),
   });
 }
 
@@ -252,22 +252,36 @@ function updateDamVisual(step) {
   if (badge) badge.setAttribute('y', waterY - 15);
   if (levelText) { levelText.setAttribute('y', waterY); levelText.textContent = `${d.H.toFixed(0)}m`; }
 
-  // Gate: 0% → fully closed (height=40), 100% → fully open (height=2)
+  // Gate: 0% → fully closed (height=40), 100% → fully open (height=2) (Slides UP to open)
   const gateH = Math.max(2, 40 * (1 - d.gate / 100));
   const gate = $('dam-gate');
-  if (gate) { gate.setAttribute('height', gateH); gate.setAttribute('y', 340 - gateH); }
-  // Hide gate lines if gate mostly open
+  if (gate) { 
+    gate.setAttribute('height', gateH); 
+    gate.setAttribute('y', 300); 
+  }
+  
+  // Hide gate lines dynamically if they are below the gate's bottom edge
+  const gateBottom = 300 + gateH;
+  const lineYCoords = [305, 315, 325, 335];
   for (let i = 1; i <= 4; i++) {
     const gl = $('gate-line' + i);
-    if (gl) gl.setAttribute('opacity', gateH > 10 ? '0.6' : '0');
+    if (gl) {
+      const lineY = lineYCoords[i - 1];
+      if (lineY < gateBottom - 2) {
+        gl.setAttribute('opacity', '0.6');
+      } else {
+        gl.setAttribute('opacity', '0');
+      }
+    }
   }
 
-  // Outflow stream width/opacity
+  // Outflow stream height, position, and opacity adjust with the gate opening
   const outflow = $('outflow-stream');
   if (outflow) {
-    const streamH = Math.max(2, 14 * (d.gate / 100));
+    const streamH = 40 - gateH;
     outflow.setAttribute('height', streamH);
-    outflow.setAttribute('y', 340 - streamH / 2);
+    outflow.setAttribute('y', 300 + gateH);
+    outflow.setAttribute('opacity', streamH > 0.5 ? '0.85' : '0');
   }
 
   // Gate badge
@@ -429,21 +443,12 @@ function updateRuleMatrix(step) {
   });
 }
 
-// ===== STAT CARDS =====
+// ===== INLINE STATS =====
 function updateStats(step) {
   if (!simData[step]) return;
   const d = simData[step];
-  $('stat-level-value').textContent = d.H.toFixed(1);
-  $('stat-rate-value').textContent = d.dH.toFixed(2);
-  $('stat-gate-value').textContent = d.gate.toFixed(1);
-  $('stat-step-value').textContent = `${d.step}/${simData.length - 1}`;
-
-  // Color coding
-  const lv = $('stat-level-value');
-  if (d.H > 100) lv.style.color = '#ef4444';
-  else if (d.H > 80) lv.style.color = '#f97316';
-  else if (d.H < 20) lv.style.color = '#ef4444';
-  else lv.style.color = '#0c3866';
+  $('stat-rate-value').textContent = `${d.dH.toFixed(2)} m/hr`;
+  $('stat-step-value').textContent = `${d.step}/${simData.length - 1} hr`;
 }
 
 // ===== MASTER UPDATE =====
@@ -501,7 +506,7 @@ function togglePlayback() {
 // ===== EVENT LISTENERS =====
 function setupEventListeners() {
   // Sliders display
-  $('initial-level').addEventListener('input', e => $('initial-level-value').textContent = e.target.value + 'm');
+  $('initial-level').addEventListener('input', e => $('initial-level-value').textContent = e.target.value + ' m');
   $('sim-steps').addEventListener('input', e => $('sim-steps-value').textContent = e.target.value);
   $('inflow-rate').addEventListener('input', e => $('inflow-rate-value').textContent = parseFloat(e.target.value).toFixed(2) + ' m/hr');
   $('sim-speed').addEventListener('input', e => {

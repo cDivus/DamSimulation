@@ -38,32 +38,6 @@
   </header>
 
   <main>
-    <!-- ===== STAT CARDS ===== -->
-    <section id="stats-section" class="section">
-      <div class="stats-grid">
-        <div class="stat-card">
-          <div class="stat-icon">💧</div>
-          <div class="stat-value" id="stat-level-value">--</div>
-          <div class="stat-label">Dam Level (H)</div>
-        </div>
-        <div class="stat-card">
-          <div class="stat-icon">📈</div>
-          <div class="stat-value" id="stat-rate-value">--</div>
-          <div class="stat-label">Rate of Change (dH)</div>
-        </div>
-        <div class="stat-card">
-          <div class="stat-icon">🚪</div>
-          <div class="stat-value" id="stat-gate-value">--</div>
-          <div class="stat-label">Gate Openness (d)</div>
-        </div>
-        <div class="stat-card">
-          <div class="stat-icon">⏱️</div>
-          <div class="stat-value" id="stat-step-value">--</div>
-          <div class="stat-label">Current Step</div>
-        </div>
-      </div>
-    </section>
-
     <!-- ===== CONTROLS + DAM ANIMATION ===== -->
     <section id="simulation-section" class="section">
       <div class="sim-grid">
@@ -128,7 +102,19 @@
 
         <!-- Dam Cross-Section -->
         <div class="card dam-card">
-          <h2 class="card-title">Dam Cross-Section</h2>
+          <div class="dam-header">
+            <h2 class="card-title">Dam Cross-Section</h2>
+            <div class="dam-header-stats">
+              <div class="dam-header-stat">
+                <span class="dam-header-stat-label">dH</span>
+                <span class="dam-header-stat-value" id="stat-rate-value">--</span>
+              </div>
+              <div class="dam-header-stat">
+                <span class="dam-header-stat-label">Step</span>
+                <span class="dam-header-stat-value" id="stat-step-value">--</span>
+              </div>
+            </div>
+          </div>
           <div id="dam-container">
             <svg id="dam-svg" viewBox="0 0 700 400" preserveAspectRatio="xMidYMid meet">
               <defs>
@@ -211,9 +197,8 @@
               <line id="gate-line4" x1="365" y1="335" x2="385" y2="335" stroke="#ea580c" stroke-width="1" opacity="0.6"/>
 
               <!-- Outflow -->
-              <line x1="390" y1="325" x2="600" y2="325" stroke="#451a03" stroke-width="1.5"/>
-              <line x1="390" y1="341" x2="600" y2="341" stroke="#451a03" stroke-width="1.5"/>
-              <rect id="outflow-stream" x="390" y="326" width="200" height="14" fill="url(#outflowGradient)" rx="2" opacity="0.85">
+              <line x1="390" y1="341" x2="710" y2="341" stroke="#451a03" stroke-width="1.5"/>
+              <rect id="outflow-stream" x="390" y="326" width="320" height="14" fill="url(#outflowGradient)" rx="2" opacity="0.85">
                 <animate attributeName="opacity" values="0.7;0.95;0.7" dur="1.5s" repeatCount="indefinite"/>
               </rect>
 
