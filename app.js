@@ -56,16 +56,32 @@ function fuzzyDamController(currentH, currentDH) {
   return { cog, agg, rules: [ruleD1, ruleD2, ruleD3, ruleD4, ruleD5], h, dh };
 }
 
+function getTargetH(inflow) {
+  let bestH = 40;
+  let minDiff = Infinity;
+  for (let hVal = 0; hVal <= 120; hVal += 0.5) {
+    const cog = fuzzyDamController(hVal, 0).cog;
+    const diff = Math.abs(cog - inflow * 10);
+    if (diff < minDiff) {
+      minDiff = diff;
+      bestH = hVal;
+    }
+  }
+  return bestH;
+}
+
 // ===== SIMULATION =====
 function runSimulation(steps, initialH, inflow) {
   let currentH = initialH, currentDH = 0;
   const history = [];
-  for (let t = 0; t < steps; t++) {
+  for (let t = 0; t <= steps; t++) {
     const result = fuzzyDamController(currentH, currentDH);
     history.push({ step: t, H: currentH, dH: currentDH, gate: result.cog, agg: result.agg, rules: result.rules, h: result.h, dh: result.dh });
     const outflow = result.cog / 10;
-    currentDH = inflow - outflow;
-    currentH += currentDH;
+    const rawDH = inflow - outflow;
+    const nextH = Math.max(0, currentH + rawDH);
+    currentDH = nextH - currentH;
+    currentH = nextH;
   }
   return history;
 }
@@ -76,6 +92,9 @@ let currentStep = 0;
 let isPlaying = false;
 let playInterval = null;
 let charts = {};
+let lastSteps = null;
+let lastInitialH = null;
+let lastInflow = null;
 
 // ===== DOM REFS =====
 const $ = id => document.getElementById(id);
@@ -203,13 +222,14 @@ function initMembershipCharts() {
 function updateCharts(upToStep) {
   const labels = [], hData = [], dhData = [], gData = [], ideal = [], stable = [], inMatch = [];
   const inflow = parseFloat($('inflow-rate').value);
+  const targetH = getTargetH(inflow);
   for (let i = 0; i <= upToStep && i < simData.length; i++) {
     const d = simData[i];
     labels.push(d.step);
     hData.push(d.H);
     dhData.push(d.dH);
     gData.push(d.gate);
-    ideal.push(40);
+    ideal.push(targetH);
     stable.push(0);
     inMatch.push(inflow * 10);
   }
@@ -217,6 +237,7 @@ function updateCharts(upToStep) {
   charts.level.data.labels = labels;
   charts.level.data.datasets[0].data = hData;
   charts.level.data.datasets[1].data = ideal;
+  charts.level.data.datasets[1].label = `Target (${targetH.toFixed(0)}m)`;
   charts.level.update();
 
   charts.rate.data.labels = labels;
@@ -251,6 +272,17 @@ function updateDamVisual(step) {
   if (indicator) { indicator.setAttribute('y1', waterY); indicator.setAttribute('y2', waterY); }
   if (badge) badge.setAttribute('y', waterY - 15);
   if (levelText) { levelText.setAttribute('y', waterY); levelText.textContent = `${d.H.toFixed(0)}m`; }
+
+  // Target Level indicator
+  const inflow = parseFloat($('inflow-rate').value);
+  const targetH = getTargetH(inflow);
+  const targetY = maxY - (targetH / 120) * (maxY - minY);
+  const targetIndicator = $('target-level-indicator');
+  const targetBadge = $('target-level-badge');
+  const targetText = $('target-level-text');
+  if (targetIndicator) { targetIndicator.setAttribute('y1', targetY); targetIndicator.setAttribute('y2', targetY); }
+  if (targetBadge) targetBadge.setAttribute('y', targetY - 15);
+  if (targetText) { targetText.setAttribute('y', targetY); targetText.textContent = `Target: ${targetH.toFixed(0)}m`; }
 
   // Gate: 0% → fully closed (height=40), 100% → fully open (height=2) (Slides UP to open)
   const gateH = Math.max(2, 40 * (1 - d.gate / 100));
@@ -465,6 +497,13 @@ function updateAll(step) {
 // ===== RUN SIMULATION & SETUP =====
 function runAndDisplay() {
   stopPlayback();
+
+  // Sync slider labels to match actual input values (prevents mismatches due to browser caching on reload)
+  if ($('initial-level-value')) $('initial-level-value').textContent = $('initial-level').value + ' m';
+  if ($('sim-steps-value')) $('sim-steps-value').textContent = $('sim-steps').value;
+  if ($('inflow-rate-value')) $('inflow-rate-value').textContent = parseFloat($('inflow-rate').value).toFixed(2) + ' m/hr';
+  if ($('sim-speed-value')) $('sim-speed-value').textContent = $('sim-speed').value + 'x';
+
   const steps = parseInt($('sim-steps').value);
   const initialH = parseFloat($('initial-level').value);
   const inflow = parseFloat($('inflow-rate').value);
@@ -473,12 +512,28 @@ function runAndDisplay() {
   $('step-scrubber').max = simData.length - 1;
   $('step-scrubber').value = 0;
   currentStep = 0;
+
+  // Track the parameters of the current simulation run
+  lastSteps = steps;
+  lastInitialH = initialH;
+  lastInflow = inflow;
+
   updateAll(0);
+}
+
+function checkAndRunIfParamsChanged() {
+  const steps = parseInt($('sim-steps').value);
+  const initialH = parseFloat($('initial-level').value);
+  const inflow = parseFloat($('inflow-rate').value);
+  if (steps !== lastSteps || initialH !== lastInitialH || inflow !== lastInflow) {
+    runAndDisplay();
+  }
 }
 
 // ===== PLAYBACK =====
 function startPlayback() {
   if (isPlaying) return;
+  checkAndRunIfParamsChanged();
   if (currentStep >= simData.length - 1) currentStep = 0;
   isPlaying = true;
   $('play-icon').style.display = 'none';
@@ -517,16 +572,34 @@ function setupEventListeners() {
   // Buttons
   $('btn-play').addEventListener('click', togglePlayback);
   $('btn-reset').addEventListener('click', runAndDisplay);
-  $('btn-step-back').addEventListener('click', () => { if (currentStep > 0) updateAll(currentStep - 1); });
-  $('btn-step-forward').addEventListener('click', () => { if (currentStep < simData.length - 1) updateAll(currentStep + 1); });
-  $('btn-run-all').addEventListener('click', () => { stopPlayback(); updateAll(simData.length - 1); });
+  $('btn-step-back').addEventListener('click', () => {
+    checkAndRunIfParamsChanged();
+    if (currentStep > 0) updateAll(currentStep - 1);
+  });
+  $('btn-step-forward').addEventListener('click', () => {
+    checkAndRunIfParamsChanged();
+    if (currentStep < simData.length - 1) updateAll(currentStep + 1);
+  });
+  $('btn-run-all').addEventListener('click', () => {
+    stopPlayback();
+    checkAndRunIfParamsChanged();
+    updateAll(simData.length - 1);
+  });
 
   // Step scrubber
-  $('step-scrubber').addEventListener('input', e => { stopPlayback(); updateAll(parseInt(e.target.value)); });
+  $('step-scrubber').addEventListener('input', e => {
+    stopPlayback();
+    checkAndRunIfParamsChanged();
+    updateAll(parseInt(e.target.value));
+  });
 
-  // Param changes re-run
+  // Param changes only update the labels, not running the simulation
   ['initial-level', 'sim-steps', 'inflow-rate'].forEach(id => {
-    $(id).addEventListener('change', runAndDisplay);
+    $(id).addEventListener('change', () => {
+      if (id === 'initial-level') $('initial-level-value').textContent = $(id).value + ' m';
+      if (id === 'sim-steps') $('sim-steps-value').textContent = $(id).value;
+      if (id === 'inflow-rate') $('inflow-rate-value').textContent = parseFloat($(id).value).toFixed(2) + ' m/hr';
+    });
   });
 
   // Resize fuzzy canvas
